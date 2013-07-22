@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>WebGL sandbox</title>
+<script src="lib/underscore.min.js"></script>
+<script src="lib/jquery.min.js"></script>
+<!-- gl-matrix documentation: http://glmatrix.net/docs/2.2.0/ -->
+<script src="lib/gl-matrix.js"></script>
+<link href="site.css" rel="stylesheet" type="text/css" />
+
+<!-- development link: http://ghkl/webgl/sandbox.html -->
+
+<style>
+canvas {
+  border: 1px solid gray;
+}
+</style>
+
+<body>
+  <h3>Example #1</h3>
+  <canvas width="600" height="400"></canvas>
+</body>
+
+<!-- Thanks to MDN at https://developer.mozilla.org/en-US/docs/Web/WebGL/Adding_2D_content_to_a_WebGL_context -->
+<script id="shader-fs" type="x-shader/x-fragment">
+  //precision mediump float;
+  // gl_FragColor is a built-in GL variable that is used for the fragment's color.
+  // Setting its value establishes the pixel's color, as seen below.
+  void main(void) {
+    gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);
+  }
+</script>
+
+<script id="shader-vs" type="x-shader/x-vertex">
+  attribute vec3 vertexPosition;
+  uniform mat4 modelViewMatrix;
+  uniform mat4 perspectiveMatrix;
+
+  void main(void) {
+    gl_Position = perspectiveMatrix * modelViewMatrix * vec4(vertexPosition, 1.0);
+  }
+</script>
+
+<script>
+// init triangle
+var triangle_vertices = [
+   0.0,  1.0,  0.0,
+  -1.0, -1.0,  0.0,
+   1.0, -1.0,  0.0,
+];
+
+// init square
+var square_vertices = [
+   1.0,  1.0,  0.0,
+  -1.0,  1.0,  0.0,
+   1.0, -1.0,  0.0,
+  -1.0, -1.0,  0.0,
+];
+
+function draw(gl) {
+  // debug global
+  window.gl = gl;
+
+  var program = getShaderProgram(gl, ['#shader-vs', '#shader-fs'])
+  window.program = program;
+
+  // not sure; factor shaders into stateful perspective and move matrices?
+  var vertexPosition_location = gl.getAttribLocation(program, 'vertexPosition');
+  // I'm not sure what this is for:
+  gl.enableVertexAttribArray(vertexPosition_location);
+  var perspectiveMatrix_location = gl.getUniformLocation(program, 'perspectiveMatrix');
+  var modelViewMatrix_location = gl.getUniformLocation(program, 'modelViewMatrix');
+  function setProgramLocations(vertexPosition, perspectiveMatrix, modelViewMatrix) {
+    // gl.vertexAttribPointer expects bindBuffer to have been set sometime before it gets called.
+    gl.vertexAttribPointer(vertexPosition_location, vertexPosition, gl.FLOAT, false, 0, 0);
+    gl.uniformMatrix4fv(perspectiveMatrix_location, false, perspectiveMatrix);
+    gl.uniformMatrix4fv(modelViewMatrix_location, false, modelViewMatrix);
+  }
+
+  var perspective = mat4.perspective(mat4.create(), // out
+    Math.PI / 4, // fovy
+    gl.canvas.width / gl.canvas.height, // aspect
+    0.1, // near
+    100.0); // far
+
+  // what are these other arguments to gl.vertexAttribPointer?
+  // gl.vertexAttribPointer(vertex_position_attribute, 3, gl.FLOAT, false, 0, 0);
+  // gl.getUniformLocation() is saying "get the address of this variable so we can set it later"
+
+  var triangle_buffer = createBuffer3D(gl, triangle_vertices);
+  var square_buffer = createBuffer3D(gl, square_vertices);
+  // window.triangle_buffer = triangle_buffer;
+  // window.square_buffer = square_buffer;
+
+  function drawScene() {
+    // Clear the color as well as the depth buffer.
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+    // reset our MVMatrix, in case we are redrawing.
+    var modelView = mat4.create();
+    mat4.identity(modelView);
+
+    // actually draw things...
+    // console.log('MV-origin', mat4.str(modelView))
+
+    // 1. make the triangle
+    //   a. move
+    mat4.translate(modelView, modelView, [-1.5, 0.0, -7.0]);
+    // console.log('MV-triangle', mat4.str(modelView))
+    gl.bindBuffer(gl.ARRAY_BUFFER, triangle_buffer);
+    setProgramLocations(3, perspective, modelView);
+    //   b. draw
+    gl.drawArrays(gl.TRIANGLES, 0, 3);
+
+    // 2. make the square
+    //   a. move
+    mat4.translate(modelView, modelView, [3.0, 0.0, 0.0]);
+    // console.log('MV-square', mat4.str(modelView))
+    gl.bindBuffer(gl.ARRAY_BUFFER, square_buffer);
+    setProgramLocations(3, perspective, modelView);
+    //   b. draw
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+  }
+  drawScene();
+}
+
+document.addEventListener('glready', function(ev) {
+  console.log('Starting to draw on', ev.detail);
+  // glready's Event.detail is a webgl context
+  draw(ev.detail);
+});
+
+</script>
+<!-- gl-helpers makes sure that the readystatechange -> canvasready -> glready event chain is kicked off  -->
+<script src="gl-helpers.js"></script>
