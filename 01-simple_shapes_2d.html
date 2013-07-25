@@ -7,7 +7,7 @@
 <script src="lib/gl-matrix.js"></script>
 <link href="site.css" rel="stylesheet" type="text/css" />
 
-<!-- development link: http://ghkl/webgl/sandbox.html -->
+<!-- development link: http://ghkl/webgl/01-simple_shapes_2d.html -->
 
 <style>
 canvas {
@@ -41,14 +41,12 @@ canvas {
 </script>
 
 <script>
-// init triangle
 var triangle_vertices = [
    0.0,  1.0,  0.0,
   -1.0, -1.0,  0.0,
    1.0, -1.0,  0.0,
 ];
 
-// init square
 var square_vertices = [
    1.0,  1.0,  0.0,
   -1.0,  1.0,  0.0,
@@ -57,30 +55,20 @@ var square_vertices = [
 ];
 
 function draw(gl) {
-  // debug global
-  window.gl = gl;
-
   var program = getShaderProgram(gl, ['#shader-vs', '#shader-fs'])
-  window.program = program;
 
   // not sure; factor shaders into stateful perspective and move matrices?
   var vertexPosition_location = gl.getAttribLocation(program, 'vertexPosition');
-  // I'm not sure what this is for:
-  gl.enableVertexAttribArray(vertexPosition_location);
   var perspectiveMatrix_location = gl.getUniformLocation(program, 'perspectiveMatrix');
   var modelViewMatrix_location = gl.getUniformLocation(program, 'modelViewMatrix');
-  function setProgramLocations(vertexPosition, perspectiveMatrix, modelViewMatrix) {
-    // gl.vertexAttribPointer expects bindBuffer to have been set sometime before it gets called.
-    gl.vertexAttribPointer(vertexPosition_location, vertexPosition, gl.FLOAT, false, 0, 0);
-    gl.uniformMatrix4fv(perspectiveMatrix_location, false, perspectiveMatrix);
-    gl.uniformMatrix4fv(modelViewMatrix_location, false, modelViewMatrix);
-  }
 
   var perspective = mat4.perspective(mat4.create(), // out
     Math.PI / 4, // fovy
     gl.canvas.width / gl.canvas.height, // aspect
     0.1, // near
     100.0); // far
+  // each vertex is three values, thus the 3 below.
+  gl.uniformMatrix4fv(perspectiveMatrix_location, false, perspective);
 
   // what are these other arguments to gl.vertexAttribPointer?
   // gl.vertexAttribPointer(vertex_position_attribute, 3, gl.FLOAT, false, 0, 0);
@@ -88,43 +76,43 @@ function draw(gl) {
 
   var triangle_buffer = createBuffer3D(gl, triangle_vertices);
   var square_buffer = createBuffer3D(gl, square_vertices);
-  // window.triangle_buffer = triangle_buffer;
-  // window.square_buffer = square_buffer;
 
-  function drawScene() {
-    // Clear the color as well as the depth buffer.
-    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+  // draw!
 
-    // reset our MVMatrix, in case we are redrawing.
-    var modelView = mat4.create();
-    mat4.identity(modelView);
+  // Clear the color as well as the depth buffer.
+  gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-    // actually draw things...
-    // console.log('MV-origin', mat4.str(modelView))
+  // reset our MVMatrix, in case we are redrawing.
+  var modelView = mat4.create();
+  mat4.identity(modelView);
 
-    // 1. make the triangle
-    //   a. move
-    mat4.translate(modelView, modelView, [-1.5, 0.0, -7.0]);
-    // console.log('MV-triangle', mat4.str(modelView))
-    gl.bindBuffer(gl.ARRAY_BUFFER, triangle_buffer);
-    setProgramLocations(3, perspective, modelView);
-    //   b. draw
-    gl.drawArrays(gl.TRIANGLES, 0, 3);
+  // actually draw things...
 
-    // 2. make the square
-    //   a. move
-    mat4.translate(modelView, modelView, [3.0, 0.0, 0.0]);
-    // console.log('MV-square', mat4.str(modelView))
-    gl.bindBuffer(gl.ARRAY_BUFFER, square_buffer);
-    setProgramLocations(3, perspective, modelView);
-    //   b. draw
-    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-  }
-  drawScene();
+  // 1. make the triangle
+  //   a. move
+  mat4.translate(modelView, modelView, [-1.5, 0.0, -7.0]);
+  gl.bindBuffer(gl.ARRAY_BUFFER, triangle_buffer);
+  gl.vertexAttribPointer(vertexPosition_location, 3, gl.FLOAT, false, 0, 0);
+  gl.uniformMatrix4fv(modelViewMatrix_location, false, modelView);
+  //   b. draw
+  // enableVertexAttribArray - says that we should draw from the buffer
+  //   we wrote at vertexPosition_location
+  gl.enableVertexAttribArray(vertexPosition_location);
+  gl.drawArrays(gl.TRIANGLES, 0, 3);
+
+  // 2. make the square
+  //   a. move
+  mat4.translate(modelView, modelView, [3.0, 0.0, 0.0]);
+  gl.bindBuffer(gl.ARRAY_BUFFER, square_buffer);
+  // vertexAttribPointer has to be called after every bindBuffer
+  gl.vertexAttribPointer(vertexPosition_location, 3, gl.FLOAT, false, 0, 0);
+  gl.uniformMatrix4fv(modelViewMatrix_location, false, modelView);
+  //   b. draw
+  gl.enableVertexAttribArray(vertexPosition_location);
+  gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 }
 
 document.addEventListener('glready', function(ev) {
-  console.log('Starting to draw on', ev.detail);
   // glready's Event.detail is a webgl context
   draw(ev.detail);
 });
