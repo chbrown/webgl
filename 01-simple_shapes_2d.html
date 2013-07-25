@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
-<title>WebGL sandbox</title>
+<title>WebGL</title>
 <script src="lib/underscore.min.js"></script>
 <script src="lib/jquery.min.js"></script>
 <!-- gl-matrix documentation: http://glmatrix.net/docs/2.2.0/ -->
@@ -9,14 +9,8 @@
 
 <!-- development link: http://ghkl/webgl/01-simple_shapes_2d.html -->
 
-<style>
-canvas {
-  border: 1px solid gray;
-}
-</style>
-
 <body>
-  <h3>Example #1</h3>
+  <h3 class="document-title"></h3>
   <canvas width="600" height="400"></canvas>
 </body>
 
@@ -59,6 +53,8 @@ function draw(gl) {
 
   // not sure; factor shaders into stateful perspective and move matrices?
   var vertexPosition_location = gl.getAttribLocation(program, 'vertexPosition');
+  // gl.getUniformLocation() is saying "get the address of this variable so we can set it later",
+  // but we have to specify the type of the variable (a uniform)
   var perspectiveMatrix_location = gl.getUniformLocation(program, 'perspectiveMatrix');
   var modelViewMatrix_location = gl.getUniformLocation(program, 'modelViewMatrix');
 
@@ -70,9 +66,6 @@ function draw(gl) {
   // each vertex is three values, thus the 3 below.
   gl.uniformMatrix4fv(perspectiveMatrix_location, false, perspective);
 
-  // what are these other arguments to gl.vertexAttribPointer?
-  // gl.vertexAttribPointer(vertex_position_attribute, 3, gl.FLOAT, false, 0, 0);
-  // gl.getUniformLocation() is saying "get the address of this variable so we can set it later"
 
   var triangle_buffer = createBuffer3D(gl, triangle_vertices);
   var square_buffer = createBuffer3D(gl, square_vertices);
@@ -89,26 +82,37 @@ function draw(gl) {
   // actually draw things...
 
   // 1. make the triangle
-  //   a. move
+  // 1a. move
   mat4.translate(modelView, modelView, [-1.5, 0.0, -7.0]);
-  gl.bindBuffer(gl.ARRAY_BUFFER, triangle_buffer);
-  gl.vertexAttribPointer(vertexPosition_location, 3, gl.FLOAT, false, 0, 0);
   gl.uniformMatrix4fv(modelViewMatrix_location, false, modelView);
-  //   b. draw
-  // enableVertexAttribArray - says that we should draw from the buffer
-  //   we wrote at vertexPosition_location
+
+  // 1b. draw from the loaded buffer
+  // point to the buffer we're going to be drawing
+  gl.bindBuffer(gl.ARRAY_BUFFER, triangle_buffer);
+  // enableVertexAttribArray tells webgl we are going to supply data from a buffer,
+  //   into the variable at vertexPosition_location
   gl.enableVertexAttribArray(vertexPosition_location);
-  gl.drawArrays(gl.TRIANGLES, 0, 3);
+  gl.vertexAttribPointer(
+    vertexPosition_location, // location
+    3, // numComponents
+    gl.FLOAT, // typeOfData
+    false, // normalizeFlag
+    0, // strideToNextPieceOfData
+    0); // offsetIntoBuffer
+  gl.drawArrays(gl.TRIANGLES, // mode
+    0, // where to start
+    3); // how many (vertices length / 3)
 
   // 2. make the square
-  //   a. move
+  // 2a. move
   mat4.translate(modelView, modelView, [3.0, 0.0, 0.0]);
   gl.bindBuffer(gl.ARRAY_BUFFER, square_buffer);
   // vertexAttribPointer has to be called after every bindBuffer
   gl.vertexAttribPointer(vertexPosition_location, 3, gl.FLOAT, false, 0, 0);
-  gl.uniformMatrix4fv(modelViewMatrix_location, false, modelView);
-  //   b. draw
+  // enableVertexAttribArray doesn't, but it's more proper to do so.
   gl.enableVertexAttribArray(vertexPosition_location);
+  gl.uniformMatrix4fv(modelViewMatrix_location, false, modelView);
+  // 2b. draw
   gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 }
 
@@ -116,6 +120,9 @@ document.addEventListener('glready', function(ev) {
   // glready's Event.detail is a webgl context
   draw(ev.detail);
 });
+
+document.querySelector('h3').innerText = document.title;
+// document.addEventListener('domready', function(ev) {});
 
 </script>
 <!-- gl-helpers makes sure that the readystatechange -> canvasready -> glready event chain is kicked off  -->

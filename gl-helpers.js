@@ -90,9 +90,18 @@ document.addEventListener('canvasready', function(ev) {
 document.addEventListener('readystatechange', function(ev) {
   // log('readystatechange', document.readyState);
   if (document.readyState == 'interactive') {
-    var el = document.querySelector('canvas');
     // detail is a magic word in the event constructor
-    var canvas_event = new CustomEvent('canvasready', {detail: el});
-    document.dispatchEvent(canvas_event);
+    var domready = new CustomEvent('domready', {detail: document});
+    document.dispatchEvent(domready);
+
+    // we hope there's a canvas to get.
+    var el = document.querySelector('canvas');
+    if (el) {
+      var canvasready = new CustomEvent('canvasready', {detail: el});
+      document.dispatchEvent(canvasready);
+    }
+    else {
+      console.error('No canvas available on page load, giving up.');
+    }
   }
 });
