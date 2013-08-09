@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>WebGL - #02</title>
+<script src="lib/underscore.min.js"></script>
+<script src="lib/jquery.min.js"></script>
+<script src="lib/gl-matrix.js"></script>
+<link href="site.css" rel="stylesheet" type="text/css" />
+
+<!-- development link: http://ghkl/webgl/02-colored_shapes_2d.html -->
+
+<!-- based on the tutorial at: http://learningwebgl.com/blog/?p=134 -->
+
+<body>
+  <h3 class="document-title"></h3>
+  <canvas width="600" height="400"></canvas>
+</body>
+
+<script id="shader-fs" type="x-shader/x-fragment">
+  //precision mediump float;
+  // gl_FragColor is a built-in GL variable that is used for the fragment's color.
+  // Setting its value establishes the pixel's color, as seen below.
+  precision mediump float;
+
+  varying vec4 vertexColor;
+
+  void main(void) {
+    gl_FragColor = vertexColor;
+  }
+</script>
+
+<script id="shader-vs" type="x-shader/x-vertex">
+  attribute vec3 attrPosition;
+  attribute vec4 attrColor;
+
+  uniform mat4 modelViewMatrix;
+  uniform mat4 perspectiveMatrix;
+
+  varying vec4 vertexColor;
+
+  void main(void) {
+    gl_Position = perspectiveMatrix * modelViewMatrix * vec4(attrPosition, 1.0);
+    vertexColor = attrColor;
+  }
+</script>
+
+<script>
+var rnd = Math.random;
+
+// triangle shape and colors
+var triangle_vertices = [
+//   x,    y,    z,
+   0.0,  1.0,  0.0,
+  -1.0, -1.0,  0.0,
+   1.0, -1.0,  0.0,
+];
+var tiedye_triangle_colors = [
+//  r,   g,   b,   alpha
+  0.0, 1.0, 0.0, 1.0,
+  1.0, 0.0, 1.0, 1.0,
+  1.0, 1.0, 0.0, 1.0,
+];
+var triangle_colors = [
+//  r,   g,   b,   alpha
+  rnd(), rnd(), rnd(), rnd(), // an alpha of 0 will produce pure white
+  rnd(), rnd(), rnd(), rnd(),
+  rnd(), rnd(), rnd(), rnd(),
+];
+
+// square shape and colors
+var square_vertices = [
+   1.0,  1.0,  0.0,
+  -1.0,  1.0,  0.0,
+   1.0, -1.0,  0.0,
+  -1.0, -1.0,  0.0,
+];
+var skyblue_square_colors = [
+  0.5, 0.5, 1.0, 1.0,
+  0.5, 0.5, 1.0, 1.0,
+  0.5, 0.5, 1.0, 1.0,
+  0.5, 0.5, 1.0, 1.0,
+];
+var square_colors = [
+  rnd(), rnd(), rnd(), rnd(),
+  rnd(), rnd(), rnd(), rnd(),
+  rnd(), rnd(), rnd(), rnd(),
+  rnd(), rnd(), rnd(), rnd(),
+];
+
+// eventing and functions
+document.addEventListener('glready', function(ev) {
+  // glready's Event.detail is a webgl context
+  init(ev.detail);
+});
+function init(gl) {
+  var program = getShaderProgram(gl, ['#shader-vs', '#shader-fs'])
+
+  draw(gl, program);
+}
+
+function draw(gl, program) {
+  // not sure; factor shaders into stateful perspective and move matrices?
+  var attrPosition_location = gl.getAttribLocation(program, 'attrPosition');
+  // enableVertexAttribArray tells webgl we are going to supply data from a buffer,
+  gl.enableVertexAttribArray(attrPosition_location);
+  var attrColor_location = gl.getAttribLocation(program, 'attrColor');
+  gl.enableVertexAttribArray(attrColor_location);
+  // gl.getUniformLocation() is saying "get the address of this variable so we can set it later",
+  // but we have to specify the type of the variable (a uniform)
+  var perspectiveMatrix_location = gl.getUniformLocation(program, 'perspectiveMatrix');
+  var modelViewMatrix_location = gl.getUniformLocation(program, 'modelViewMatrix');
+
+  var perspective = mat4.perspective(mat4.create(), // out
+    Math.PI / 4, // fovy
+    gl.canvas.width / gl.canvas.height, // aspect
+    0.1, // near
+    100.0); // far
+  // each vertex is three values, thus the 3 below.
+  gl.uniformMatrix4fv(perspectiveMatrix_location, false, perspective);
+
+  // draw!
+
+  // Clear the color as well as the depth buffer.
+  gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+  // reset our MVMatrix, in case we are redrawing.
+  var modelView = mat4.create();
+  mat4.identity(modelView);
+
+  // actually draw things...
+
+  // ####################
+  // 1. make the triangle
+  // 1a. move
+  mat4.translate(modelView, modelView, [-1.5, 0.0, -7.0]);
+  gl.uniformMatrix4fv(modelViewMatrix_location, false, modelView);
+
+  // 1b. draw from the loaded buffer
+  // createBuffer3D does a createBuffer + bindBuffer + bufferData sequence
+  createBuffer3D(gl, triangle_vertices);
+  // gl.bindBuffer(gl.ARRAY_BUFFER, triangle_buffer); // createBuffer3D covers this
+  // point the buffer we just created into the variable at attrPosition_location
+  gl.vertexAttribPointer(
+    attrPosition_location, // location
+    3, // numComponents
+    gl.FLOAT, // typeOfData
+    false, // normalizeFlag
+    0, // strideToNextPieceOfData
+    0); // offsetIntoBuffer
+
+  // place color buffer into the shader's "attrColor" variable
+  createBuffer3D(gl, triangle_colors);
+  gl.vertexAttribPointer(attrColor_location, 4, gl.FLOAT, false, 0, 0);
+
+  // perform drawing
+  gl.drawArrays(gl.TRIANGLES, // mode
+    0, // where to start
+    3); // how many (vertices length / 3)
+
+  // ##################
+  // 2. make the square
+  // 2a. move
+  mat4.translate(modelView, modelView, [3.0, 0.0, 0.0]);
+  gl.uniformMatrix4fv(modelViewMatrix_location, false, modelView);
+
+  createBuffer3D(gl, square_vertices);
+  // gl.bindBuffer(gl.ARRAY_BUFFER, square_buffer);
+  // vertexAttribPointer has to be called after every bindBuffer
+  gl.vertexAttribPointer(attrPosition_location, 3, gl.FLOAT, false, 0, 0);
+  // enableVertexAttribArray doesn't, but it's more proper to do so.
+
+  createBuffer3D(gl, square_colors);
+  gl.vertexAttribPointer(attrColor_location, 4, gl.FLOAT, false, 0, 0);
+
+  // 2b. finally: draw
+  gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+}
+
+document.querySelector('h3').innerText = document.title;
+</script>
+<script src="gl-helpers.js"></script>

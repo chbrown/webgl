@@ -1,4 +1,6 @@
-"use strict"; /*jslint indent: 2, debug: true, devel: true, browser: true */ /*globals $, Event, CustomEvent */
+"use strict";
+/*jslint indent: 2, debug: true, devel: true, browser: true */
+/*globals $, Event, CustomEvent */
 
 function getShader(gl, selector) {
   var el = document.querySelector(selector);
@@ -6,10 +8,10 @@ function getShader(gl, selector) {
   var src = el.innerText;
 
   var shader = null;
-  if (type == "x-shader/x-fragment") {
+  if (type == 'x-shader/x-fragment') {
     shader = gl.createShader(gl.FRAGMENT_SHADER);
   }
-  else if (type == "x-shader/x-vertex") {
+  else if (type == 'x-shader/x-vertex') {
     shader = gl.createShader(gl.VERTEX_SHADER);
   }
   else {
@@ -28,6 +30,10 @@ function getShader(gl, selector) {
 }
 
 function getShaderProgram(gl, selectors) {
+  /** calls out to getShader with each selector, and pulls them together as
+  one WebGL Program, attaching each Shader after compiling, then linking and
+  using the Program on the current WebGL context.
+  */
   var program = gl.createProgram();
 
   selectors.forEach(function(selector) {
@@ -46,7 +52,6 @@ function getShaderProgram(gl, selectors) {
   return program;
 }
 
-
 function createBuffer3D(gl, vertices) {
   var buffer = gl.createBuffer();
   // buffer.itemSize = 3;
@@ -64,10 +69,10 @@ function initializeGL(gl) {
   // less-than-or-equal so that near things obscure far things
   gl.depthFunc(gl.LEQUAL);
 
-  // Set clear color to black, fully opaque
-  gl.clearColor(0.0, 0.0, 0.0, 1.0);
-  // Set clear color to half-gray
-  gl.clearColor(0.5, 0.5, 0.5, 1.0);
+  // Set clear color to...
+  // gl.clearColor(0.0, 0.0, 0.0, 1.0); // black, fully opaque
+  gl.clearColor(0.2, 0.2, 0.2, 1.0); // nearly black, fully opaque
+  // gl.clearColor(0.5, 0.5, 0.5, 1.0); // half-gray
 }
 
 // this is triggered after readyState == 'interactive', with the first canvas on the page.
