@@ -1,14 +1,13 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
-<title>WebGL Tutorial - #02</title>
+<title>WebGL Tutorial - #03</title>
 <script src="lib/underscore.min.js"></script>
 <script src="lib/jquery.min.js"></script>
 <script src="lib/gl-matrix.js"></script>
 <link href="site.css" rel="stylesheet" type="text/css" />
 
-<!-- development link: http://ghkl/webgl/02-colored_shapes_2d.html -->
-
-<!-- based on the tutorial at: http://learningwebgl.com/blog/?p=134 -->
+<!-- development link: http://ghkl/webgl/03a-colored_shapes_anim_2d.html -->
+<!-- based on the tutorial at: http://learningwebgl.com/blog/?p=239 -->
 
 <body>
   <h3 class="document-title"></h3>
@@ -44,7 +43,15 @@
 </script>
 
 <script>
-var rnd = Math.random;
+function squeeze(min, num, max) {
+  return Math.max(min, Math.min(max, num));
+};
+function mutate(xs) {
+  for (var i = 0; i < xs.length; i++) {
+    var offset = (Math.random() - 0.5) * 0.07;
+    xs[i] = squeeze(0.0, xs[i] + offset, 1.0);
+  }
+}
 
 // triangle shape and colors
 var triangle_vertices = [
@@ -53,38 +60,17 @@ var triangle_vertices = [
   -1.0, -1.0,  0.0,
    1.0, -1.0,  0.0,
 ];
-var tiedye_triangle_colors = [
-//  r,   g,   b,   alpha
-  0.0, 1.0, 0.0, 1.0,
-  1.0, 0.0, 1.0, 1.0,
-  1.0, 1.0, 0.0, 1.0,
-];
-var triangle_colors = [
-//  r,   g,   b,   alpha
-  rnd(), rnd(), rnd(), rnd(), // an alpha of 0 will produce pure white
-  rnd(), rnd(), rnd(), rnd(),
-  rnd(), rnd(), rnd(), rnd(),
-];
+var triangle_colors = _.range(12).map(Math.random);
 
 // square shape and colors
 var square_vertices = [
+//   x,    y,    z,
    1.0,  1.0,  0.0,
   -1.0,  1.0,  0.0,
    1.0, -1.0,  0.0,
   -1.0, -1.0,  0.0,
 ];
-var skyblue_square_colors = [
-  0.5, 0.5, 1.0, 1.0,
-  0.5, 0.5, 1.0, 1.0,
-  0.5, 0.5, 1.0, 1.0,
-  0.5, 0.5, 1.0, 1.0,
-];
-var square_colors = [
-  rnd(), rnd(), rnd(), rnd(),
-  rnd(), rnd(), rnd(), rnd(),
-  rnd(), rnd(), rnd(), rnd(),
-  rnd(), rnd(), rnd(), rnd(),
-];
+var square_colors = _.range(16).map(Math.random);
 
 // eventing and functions
 document.addEventListener('glready', function(ev) {
@@ -94,6 +80,7 @@ document.addEventListener('glready', function(ev) {
 function init(gl) {
   var program = getShaderProgram(gl, ['#shader-vs', '#shader-fs'])
 
+  window.WEBGL = gl; // global debugging helper
   draw(gl, program);
 }
 
@@ -148,6 +135,7 @@ function draw(gl, program) {
     0); // offsetIntoBuffer
 
   // place color buffer into the shader's "attrColor" variable
+  mutate(triangle_colors);
   createBuffer3D(gl, triangle_colors);
   gl.vertexAttribPointer(attrColor_location, 4, gl.FLOAT, false, 0, 0);
 
@@ -168,11 +156,19 @@ function draw(gl, program) {
   gl.vertexAttribPointer(attrPosition_location, 3, gl.FLOAT, false, 0, 0);
   // enableVertexAttribArray doesn't, but it's more proper to do so.
 
+  mutate(square_colors);
   createBuffer3D(gl, square_colors);
   gl.vertexAttribPointer(attrColor_location, 4, gl.FLOAT, false, 0, 0);
 
   // 2b. finally: draw
   gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+
+  // 3. redraw
+  // performance.now()
+  requestAnimationFrame(function() {
+    // console.log('requestAnimationFrame', arguments);
+    draw(gl, program);
+  });
 }
 
 document.querySelector('h3').innerText = document.title;
