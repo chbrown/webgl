@@ -6,12 +6,13 @@
 <script src="lib/gl-matrix.js"></script>
 <link href="site.css" rel="stylesheet" type="text/css" />
 
-<!-- development link: http://ghkl/webgl/03a-colored_shapes_anim_2d.html -->
+<!-- development link: http://ghkl/webgl/03b-colored_shapes_anim_3d.html -->
 <!-- based on the tutorial at: http://learningwebgl.com/blog/?p=239 -->
 
 <body>
   <h3 class="document-title"></h3>
   <canvas width="600" height="400"></canvas>
+  <div><button id="stop">Stop</button></div>
 </body>
 
 <script id="shader-fs" type="x-shader/x-fragment">
@@ -46,9 +47,10 @@
 function squeeze(min, num, max) {
   return Math.max(min, Math.min(max, num));
 };
-function mutate(xs) {
+function mutate_floats(xs, range) {
+  // keeping each one
   for (var i = 0; i < xs.length; i++) {
-    var offset = (Math.random() - 0.5) * 0.07;
+    var offset = (Math.random() - 0.5) * range;
     xs[i] = squeeze(0.0, xs[i] + offset, 1.0);
   }
 }
@@ -60,7 +62,6 @@ var triangle_vertices = [
   -1.0, -1.0,  0.0,
    1.0, -1.0,  0.0,
 ];
-var triangle_colors = _.range(12).map(Math.random);
 
 // square shape and colors
 var square_vertices = [
@@ -70,21 +71,57 @@ var square_vertices = [
    1.0, -1.0,  0.0,
   -1.0, -1.0,  0.0,
 ];
-var square_colors = _.range(16).map(Math.random);
+
+function mutate(STATE, ms) {
+  // measure time since last mutation:
+  var elapsed_ms = ms - STATE.ms;
+  STATE.ms = ms;
+  // each frame takes about 16 ms.
+  var frame_unit = elapsed_ms / 16;
+
+  // mutate the colors
+  mutate_floats(STATE.square_colors, frame_unit * 0.04);
+  mutate_floats(STATE.triangle_colors, frame_unit * 0.04);
+
+  // mutate the rotations
+  STATE.triangle_rotation += elapsed_ms / 100.0;
+  STATE.square_rotation += elapsed_ms / 90.0;
+  // console.log('rot', STATE.triangle_rotation, STATE.square_rotation);
+}
 
 // eventing and functions
 document.addEventListener('glready', function(ev) {
   // glready's Event.detail is a webgl context
+  // window.WEBGL = ev.detail; // global debugging helper
   init(ev.detail);
 });
-function init(gl) {
-  var program = getShaderProgram(gl, ['#shader-vs', '#shader-fs'])
 
-  window.WEBGL = gl; // global debugging helper
-  draw(gl, program);
+function init(gl) {
+  // locals: gl, program, STATE
+  var program = getShaderProgram(gl, ['#shader-vs', '#shader-fs'])
+  var STATE = {
+    ms: 0, // performance.now(),
+    square_vertices: square_vertices,
+    square_colors: _.range(16).map(Math.random),
+    square_rotation: 0,
+    triangle_vertices: triangle_vertices,
+    triangle_colors: _.range(12).map(Math.random),
+    triangle_rotation: 0,
+  };
+
+  function tick(ms) {
+    // console.log('tick', ms);
+    draw(gl, program, STATE);
+    mutate(STATE, ms);
+    if (!window.STOP) {
+      requestAnimationFrame(tick);
+    }
+  }
+  // kick it off:
+  requestAnimationFrame(tick);
 }
 
-function draw(gl, program) {
+function draw(gl, program, STATE) {
   // not sure; factor shaders into stateful perspective and move matrices?
   var attrPosition_location = gl.getAttribLocation(program, 'attrPosition');
   // enableVertexAttribArray tells webgl we are going to supply data from a buffer,
@@ -119,9 +156,14 @@ function draw(gl, program) {
   // 1. make the triangle
   // 1a. move
   mat4.translate(modelView, modelView, [-1.5, 0.0, -7.0]);
-  gl.uniformMatrix4fv(modelViewMatrix_location, false, modelView);
+  // 1b. rotate
+  var triangleModelView = mat4.rotateY(mat4.create(), modelView, STATE.triangle_rotation / Math.TAU);
+  gl.uniformMatrix4fv(modelViewMatrix_location, false, triangleModelView);
 
-  // 1b. draw from the loaded buffer
+  // mat4.translate(modelView, modelView, [-1.5, 0.0, -7.0]);
+  // gl.uniformMatrix4fv(modelViewMatrix_location, false, modelView);
+
+  // 1c. draw from the loaded buffer
   // createBuffer3D does a createBuffer + bindBuffer + bufferData sequence
   createBuffer3D(gl, triangle_vertices);
   // gl.bindBuffer(gl.ARRAY_BUFFER, triangle_buffer); // createBuffer3D covers this
@@ -135,8 +177,7 @@ function draw(gl, program) {
     0); // offsetIntoBuffer
 
   // place color buffer into the shader's "attrColor" variable
-  mutate(triangle_colors);
-  createBuffer3D(gl, triangle_colors);
+  createBuffer3D(gl, STATE.triangle_colors);
   gl.vertexAttribPointer(attrColor_location, 4, gl.FLOAT, false, 0, 0);
 
   // perform drawing
@@ -148,7 +189,8 @@ function draw(gl, program) {
   // 2. make the square
   // 2a. move
   mat4.translate(modelView, modelView, [3.0, 0.0, 0.0]);
-  gl.uniformMatrix4fv(modelViewMatrix_location, false, modelView);
+  var squareModelView = mat4.rotateZ(mat4.create(), modelView, STATE.square_rotation / Math.TAU);
+  gl.uniformMatrix4fv(modelViewMatrix_location, false, squareModelView);
 
   createBuffer3D(gl, square_vertices);
   // gl.bindBuffer(gl.ARRAY_BUFFER, square_buffer);
@@ -156,21 +198,20 @@ function draw(gl, program) {
   gl.vertexAttribPointer(attrPosition_location, 3, gl.FLOAT, false, 0, 0);
   // enableVertexAttribArray doesn't, but it's more proper to do so.
 
-  mutate(square_colors);
-  createBuffer3D(gl, square_colors);
+  createBuffer3D(gl, STATE.square_colors);
   gl.vertexAttribPointer(attrColor_location, 4, gl.FLOAT, false, 0, 0);
 
   // 2b. finally: draw
   gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-
-  // 3. redraw
-  // performance.now()
-  requestAnimationFrame(function() {
-    // console.log('requestAnimationFrame', arguments);
-    draw(gl, program);
-  });
 }
 
 document.querySelector('h3').innerText = document.title;
+
+function stop() {
+  window.STOP = true;
+  document.querySelector('#stop').remove();
+}
+document.querySelector('#stop').addEventListener('click', stop);
+setTimeout(stop, 2*60*1000); // stop after 2 minutes by default
 </script>
 <script src="gl-helpers.js"></script>
