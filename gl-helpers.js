@@ -1,6 +1,7 @@
 "use strict";
 /*jslint indent: 2, debug: true, devel: true, browser: true */
 /*globals $, Event, CustomEvent */
+Math.TAU = 2.0 * Math.PI;
 
 function getShader(gl, selector) {
   var el = document.querySelector(selector);
