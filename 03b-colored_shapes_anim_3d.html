@@ -44,16 +44,6 @@
 </script>
 
 <script>
-function squeeze(min, num, max) {
-  return Math.max(min, Math.min(max, num));
-};
-function mutate_floats(xs, range) {
-  // keeping each one
-  for (var i = 0; i < xs.length; i++) {
-    var offset = (Math.random() - 0.5) * range;
-    xs[i] = squeeze(0.0, xs[i] + offset, 1.0);
-  }
-}
 
 // triangle shape and colors
 var triangle_vertices = [
@@ -92,7 +82,7 @@ function mutate(STATE, ms) {
 // eventing and functions
 document.addEventListener('glready', function(ev) {
   // glready's Event.detail is a webgl context
-  // window.WEBGL = ev.detail; // global debugging helper
+  window.WEBGL = ev.detail; // global debugging helper
   init(ev.detail);
 });
 
