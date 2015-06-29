@@ -11,9 +11,18 @@ Using (and learning to use) WebGL.
   b. [Those colored shapes, animated, in 3D!](03b-colored_shapes_anim_3d.html)
 
 
-## Links
+## WebGL objects
 
-Examples involving either maps, heatmaps, or large numbers of small things:
+* `WebGLRenderingContext`
+  - Properties:
+    + canvas: Element
+    + drawingBufferHeight: number
+    + drawingBufferWidth: number
+
+
+## References
 
 * http://aleksandarrodic.com/p/daily-routines/
-* [gl-matrix documentation](http://glmatrix.net/docs/2.2.0/)
+* [gl-matrix](https://github.com/toji/gl-matrix) [documentation](http://glmatrix.net/)
+* https://developer.mozilla.org/en-US/docs/Web/WebGL
+* https://developer.mozilla.org/en-US/docs/Web/WebGL/Adding_2D_content_to_a_WebGL_context

@@ -1,0 +1,16 @@
+{
+  "name": "webgl",
+  "description": "WebGL examples and references",
+  "keywords" : ["webgl", "examples", "references", "helpers"],
+  "version": "0.0.2",
+  "homepage": "https://github.com/chbrown/webgl",
+  "repository": "git://github.com/chbrown/webgl.git",
+  "author": "Christopher Brown <io@henrian.com> (http://henrian.com)",
+  "license": "MIT",
+  "private": true,
+  "devDependencies": {
+    "gl-matrix": "*",
+    "lodash": "*",
+    "ndarray": "*"
+  }
+}
