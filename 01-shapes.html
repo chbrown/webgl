@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<head>
+  <meta charset="utf-8">
+  <link href="site.css" rel="stylesheet" type="text/css">
+  <script src="lib/lodash.min.js"></script>
+  <script src="lib/gl-matrix.js"></script>
+  <script src="world.js"></script>
+</head>
+<body class="hpad">
+  <h2>01 - Shapes (Triangle and Square)</h2>
+  <canvas width="600" height="400"></canvas>
+</body>
+
+
+<script>
+/*jslint browser: true, esnext: true */ /*globals World, mat4 */
+
+var triangle_vertices = [
+   0.0,  1.0,  0.0,
+  -1.0, -1.0,  0.0,
+   1.0, -1.0,  0.0,
+];
+
+var square_vertices = [
+   1.0,  1.0,  0.0,
+  -1.0,  1.0,  0.0,
+   1.0, -1.0,  0.0,
+  -1.0, -1.0,  0.0,
+];
+
+var vertex_shader = `
+  attribute vec3 vertexPosition;
+  uniform mat4 modelViewMatrix;
+  uniform mat4 perspectiveMatrix;
+
+  void main(void) {
+    gl_Position = perspectiveMatrix * modelViewMatrix * vec4(vertexPosition, 1.0);
+  }
+`;
+
+var fragment_shader = `
+  void main(void) {
+    // gl_FragColor is a built-in GL variable that is used for the fragment's color.
+    // Setting its value establishes the pixel's color.
+    gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);
+  }
+`;
+
+var canvas = document.querySelector('canvas');
+var world = new World(canvas);
+var context = world.context;
+
+var program = world.initializeProgram(vertex_shader, fragment_shader);
+
+// not sure; factor shaders into stateful perspective and move matrices?
+var vertexPosition_location = context.getAttribLocation(program, 'vertexPosition');
+// gl.getUniformLocation() is saying "get the address of this variable so we can set it later",
+// but we have to specify the type of the variable (a uniform)
+var perspectiveMatrix_location = context.getUniformLocation(program, 'perspectiveMatrix');
+var modelViewMatrix_location = context.getUniformLocation(program, 'modelViewMatrix');
+
+var perspective = mat4.perspective(mat4.create(), // out
+  Math.PI / 4, // fovy
+  context.canvas.width / context.canvas.height, // aspect
+  0.1, // near
+  100.0); // far
+// each vertex is three values, thus the 3 below.
+context.uniformMatrix4fv(perspectiveMatrix_location, false, perspective);
+
+// Okay, the environment is all set up. Now draw!
+
+// Clear the color as well as the depth buffer.
+context.clear(context.COLOR_BUFFER_BIT | context.DEPTH_BUFFER_BIT);
+
+// reset our MVMatrix, in case we are redrawing.
+var modelView = mat4.create();
+mat4.identity(modelView);
+
+// actually draw things...
+
+// 1. make the triangle
+// 1a. move
+mat4.translate(modelView, modelView, [-1.5, 0.0, -7.0]);
+context.uniformMatrix4fv(modelViewMatrix_location, false, modelView);
+
+// 1b. draw from the loaded buffer
+// point to the buffer we're going to be drawing
+world.attachBuffer(triangle_vertices);
+// context.bindBuffer(context.ARRAY_BUFFER, triangle_buffer);
+// enableVertexAttribArray tells webgl we are going to supply data from a buffer,
+//   into the variable at vertexPosition_location
+context.enableVertexAttribArray(vertexPosition_location);
+context.vertexAttribPointer(
+  vertexPosition_location, // location
+  3, // numComponents
+  context.FLOAT, // typeOfData
+  false, // normalizeFlag
+  0, // strideToNextPieceOfData
+  0); // offsetIntoBuffer
+context.drawArrays(context.TRIANGLES, // mode
+  0, // where to start
+  3); // how many (vertices length / 3)
+
+// 2. make the square
+// 2a. move
+mat4.translate(modelView, modelView, [3.0, 0.0, 0.0]);
+world.attachBuffer(square_vertices);
+// context.bindBuffer(context.ARRAY_BUFFER, square_buffer);
+// vertexAttribPointer has to be called after every bindBuffer
+context.vertexAttribPointer(vertexPosition_location, 3, context.FLOAT, false, 0, 0);
+// enableVertexAttribArray doesn't, but it's more proper to do so.
+context.enableVertexAttribArray(vertexPosition_location);
+context.uniformMatrix4fv(modelViewMatrix_location, false, modelView);
+// 2b. draw
+context.drawArrays(context.TRIANGLE_STRIP, 0, 4);
+
+</script>
