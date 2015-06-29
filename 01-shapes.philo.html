@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<head>
+  <meta charset="utf-8">
+  <link href="site.css" rel="stylesheet" type="text/css">
+  <script src="lib/PhiloGL.js"></script>
+</head>
+<body class="hpad">
+  <h2>01 - Shapes (Triangle and Square) (PhiloGL)</h2>
+  <canvas id="canvas" width="600" height="400"></canvas>
+</body>
+
+<script>
+/*jslint browser: true, esnext: true */ /*globals PhiloGL */
+
+var triangle_vertices = [
+   0.0,  1.0,  0.0,
+  -1.0, -1.0,  0.0,
+   1.0, -1.0,  0.0,
+];
+
+var square_vertices = [
+   1.0,  1.0,  0.0,
+  -1.0,  1.0,  0.0,
+   1.0, -1.0,  0.0,
+  -1.0, -1.0,  0.0,
+];
+
+var vertex_shader = `
+  attribute vec3 vertexPosition;
+  uniform mat4 modelViewMatrix;
+  uniform mat4 perspectiveMatrix;
+
+  void main(void) {
+    gl_Position = perspectiveMatrix * modelViewMatrix * vec4(vertexPosition, 1.0);
+  }
+`;
+
+var fragment_shader = `
+  void main(void) {
+    // gl_FragColor is a built-in GL variable that is used for the fragment's color.
+    // Setting its value establishes the pixel's color.
+    gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);
+  }
+`;
+
+PhiloGL('canvas', {
+  onLoad: function(app) {
+    window.app = app;
+    // onLoad gets called in a try-catch that swallows all errors. Ugly, PhiloGL, very ugly.
+    setTimeout(function() {
+      philoLoad(app);
+    }, 0);
+  }
+});
+function philoLoad(app) {
+  var gl = app.gl;
+
+  gl.viewport(0, 0, app.canvas.width, app.canvas.height);
+  gl.clearColor(0, 0, 0, 1);
+  gl.clearDepth(1);
+  gl.enable(gl.DEPTH_TEST);
+  gl.depthFunc(gl.LEQUAL);
+  gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+  var program = PhiloGL.Program.fromShaderSources(vertex_shader, fragment_shader);
+  app.use(program);
+
+  program.setBuffers({
+    triangle: {
+      attribute: 'vertexPosition',
+      value: new Float32Array(triangle_vertices),
+      size: 3
+    },
+    square: {
+      attribute: 'vertexPosition',
+      value: new Float32Array(square_vertices),
+      size: 3
+    }
+  });
+
+  var camera = app.camera;
+  camera.view.id();
+  //Draw Triangle
+  camera.view.$translate(-1.5, 0, -7);
+  program.setUniform('modelViewMatrix', camera.view);
+  program.setUniform('perspectiveMatrix', camera.projection);
+  program.setBuffer('triangle');
+  gl.drawArrays(gl.TRIANGLES, 0, 3);
+
+  //Draw Square
+  camera.view.$translate(3, 0, 0);
+  program.setUniform('modelViewMatrix', camera.view);
+  program.setUniform('perspectiveMatrix', camera.projection);
+  program.setBuffer('square');
+  gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+}
+
+</script>
