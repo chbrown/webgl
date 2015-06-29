@@ -1,43 +1,26 @@
-html {
-  height: 100%;
-}
+/* --- general resets --- */
 body {
-  font-family: 'Helvetica Neue', Helvetica, Arial;
-  font-weight: 200;
-
-  height: 100%;
   margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-h1, h2, h3, h4, h5, h6 {
-  margin: 0.25em 0 0.5em;
-}
-p {
-  margin: 0.5em 0;
-}
-label span {
-  font-weight: bold;
 }
 table {
+  border-spacing: 0;
   border-collapse: collapse;
+  th, td {
+    font-size: 100%;
+    text-align: left;
+  }
+}
+/* ---------------------- */
+body {
+  font-family: Helvetica, Arial, sans-serif;
+}
+.hpad {
+  padding: 0 10px;
+}
+h1, h2, h3, h4, h5, h6, p {
+  margin: 1.5ex 0 1ex;
 }
 td {
   padding: 0 8px 2px 0;
-  vertical-align: top;
-  font-size: 90%;
   white-space: nowrap;
-}
-button {
-  margin: 10px 0;
-}
-textarea {
-  display: block;
-}
-.control {
-  margin: 10px;
-  float: left;
-}
-.latitude, .longitude {
-  text-align: right;
 }
